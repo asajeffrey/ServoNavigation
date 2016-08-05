@@ -281,12 +281,16 @@ _traverse-from_∵_ : ∀ {D} (H : NavigationHistory(D)) d →
 (H traverse-from d ∵ d∈CGB) with max(SessionPast(d)) ∵ d∈CGB where open NavigationHistory H
 (H traverse-from d ∵ d∈CGB) | (c , _) = (H traverse-to c)
 
- -- _traverses-from_∵_ : ∀ {D n} (H : NavigationHistory(D)) (ds : D ^ n) →
---   let open NavigationHistory H in 
---   (ds ∈ All(CanGoBack)) →
---   NavigationHistory(D)
--- (H traverses-from ds ∵ ds∈CGB) = (H traverses-to (prev*(ds) ∵ ds∈CGB)) where open NavigationHistory H
+_traverses-from_∵_ : ∀ {D n} (H : NavigationHistory(D)) (ds : D ^ n) →
+  let open NavigationHistory H in 
+  (ds ∈ All(CanGoBack)) →
+  NavigationHistory(D)
+(H traverses-from nil ∵ tt) = H
+(H traverses-from (d ∷ ds) ∵ (d∈CGB , ds∈CGB)) = (H traverse-from d ∵ d∈CGB) traverses-from ds ∵ ds∈CGB
 
+data _traverses-back-by_to_ {D} (H : NavigationHistory(D)) (δ : ℕ) : (H : NavigationHistory(D)) → Set where
+  back : ∀ (ds : D ^ δ) ds∈CGB → (ds ∈ BackTarget*(H)) → (H traverses-back-by δ to (H traverses-from ds ∵ ds∈CGB))
+  
 BT-hd : ∀ {D} {H : NavigationHistory(D)} {n} d (ds : D ^ n) →
   ((d ∷ ds) ∈ BackTarget*(H)) →
   (d ∈ BackTarget(H))
@@ -345,3 +349,36 @@ BT-tl {D} {H} {n} d d∈CGB ds d∷ds∈BT | ((d>ds , (ds↓ , ds∈BT′)) , ds
   ds-max : ∀ es → (es ∈ (Decreasing ∩ All((A′ ∪ JointSessionPast′) ∩ CanGoBack))) → (es ≤* ds)
   ds-max es (es↓ , es∈BT′) = ds-max′ es (All-resp-⊆ lemma″ es es∈BT′ , (es↓ , All-resp-⊆ lemma′ es es∈BT′))
   
+BT-cons : ∀ {D} {H : NavigationHistory(D)} {n} d d∈CGB (ds : D ^ n) →
+  (d ∈ BackTarget(H)) →
+  (ds ∈ BackTarget*(H traverse-from d ∵ d∈CGB)) →
+  ((d ∷ ds) ∈ BackTarget*(H))
+BT-cons {D} {H} d d∈CGB ds ((d∈A , _) , d-max) ((ds↓ , ds∈JSP′∩CGB) , ds-max) with max(SessionPast(d)) ∵ d∈CGB where open NavigationHistory H
+BT-cons {D} {H} d d∈CGB ds ((d∈A , _) , d-max) ((ds↓ , ds∈JSP′∩CGB) , ds-max) | (c , _) = (((d<ds , ds↓) , (((in₁ d∈A) , d∈CGB) , All-resp-⊆ lemma ds ds∈JSP′∩CGB)) , d∷ds-max) where
+
+  open NavigationHistory H
+  open NavigationHistory (H traverse-to c) using () renaming (A to A′ ; JointSessionPast to JointSessionPast′)
+  
+  d<ds : (ds ∈ All(Past(d)))
+  d<ds = {!!}
+
+  lemma : ((A′ ∪ JointSessionPast′) ∩ CanGoBack) ⊆ ((A ∪ JointSessionPast) ∩ CanGoBack)
+  lemma = {!!}
+
+  d∷ds-max : ∀ es → es ∈ (Decreasing ∩ All ((A ∪ JointSessionPast) ∩ CanGoBack)) → (es ≤* (d ∷ ds))
+  d∷ds-max = {!!}
+  
+Theorem : ∀ {D} {H H′ H″ : NavigationHistory(D)} {δ δ′} →
+  (H traverses-back-by δ to H′) → 
+  (H′ traverses-back-by δ′ to H″) → 
+  (H traverses-back-by (δ + δ′) to H″)
+Theorem {D} (back ds ds∈CGB ds∈BT) = Lemma ds ds∈CGB ds∈BT where
+
+  Lemma : ∀ {H δ δ′ H″} (ds : D ^ δ) ds∈CGB →
+    (ds ∈ BackTarget*(H)) → 
+    ((H traverses-from ds ∵ ds∈CGB) traverses-back-by δ′ to H″) →
+    (H traverses-back-by (δ + δ′) to H″)
+  Lemma {H} nil _ _ H′-to-H″ = H′-to-H″
+  Lemma {H} (d ∷ ds) (d∈CGB , ds∈CGB) d∷ds∈BT H′-to-H″ with Lemma ds ds∈CGB (BT-tl {H = H} d d∈CGB ds d∷ds∈BT) H′-to-H″
+  Lemma {H} (d ∷ ds) (d∈CGB , ds∈CGB) d∷ds∈BT H′-to-H″ | back ds′ ds′∈CGB ds′∈BT = back (d ∷ ds′) (d∈CGB , ds′∈CGB) (BT-cons {H = H} d d∈CGB ds′ (BT-hd {H = H} d ds d∷ds∈BT) ds′∈BT)
+
